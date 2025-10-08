@@ -182,21 +182,3 @@ h1, h2 {
     opacity: 0.3; 
     margin-top: 150px; 
 }
-/* --- NYA STILAR FÖR DEN NYA METODEN --- */
-#main-canvas-container {
-    position: fixed; /* Ligger fast i bakgrunden */
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -1; /* Placerar den bakom allt annat innehåll */
-    pointer-events: none; /* Gör så att man kan klicka "igenom" den */
-}
-
-#main-canvas-container canvas {
-    pointer-events: auto; /* Gör så att man KAN interagera med canvasen */
-}
-
-.canvas-placeholder {
-    pointer-events: none; /* Säkerställer att man inte blockerar musen på platshållarna */
-}
