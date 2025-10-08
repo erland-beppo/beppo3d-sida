@@ -28,6 +28,7 @@ function handleRotationEvent(event) {
     const xNormalized = (clientX / window.innerWidth) - 0.5;
     const yNormalized = (clientY / viewHeight) - 0.5; 
     
+    // Roterar BÅDA modellerna samtidigt
     loadedModels.forEach(model => {
         model.rotation.y = xNormalized * SENSITIVITY * Math.PI * 2;
         model.rotation.x = yNormalized * SENSITIVITY * Math.PI * 2;
@@ -37,31 +38,28 @@ function handleRotationEvent(event) {
 
 // --- 1. STARTFUNKTION OCH INITIERING ---
 function init() {
-    // 1. Skapar EN global scen
+    // Skapar EN global scen
     scene = new THREE.Scene();
     
-    // NY FIX: Vi kör all initieringslogik EFTER att dokumentet har laddats
-    window.onload = function() {
-        startRenderingPipeline();
-    };
-
-    setupEventListeners();
-    animate();
-}
-
-// NY FUNKTION: Huvudlogiken som körs efter laddning
-function startRenderingPipeline() {
     // Ladda BÅDA modellerna i sina respektive hållare
     // load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotationX)
     
-    // Modell 1: Rosa/röd färg 
+    // Modell 1: Rosa/röd färg (Standard framåtvinkel: 0)
     load3DModel(MODEL_FILE_1, 'canvas-holder-1', 250, 0xfc5858, 0.6, 0, 0); 
     
     // Modell 2: Ljusblå (Zoom 60, Vinklad uppifrån)
     load3DModel(MODEL_FILE_2, 'canvas-holder-2', 60, 0x0061ff, 0.9, 10000, -Math.PI / 3); 
     
-    // Nödvändigt anrop för att få rätt storlek direkt
-    onWindowResize(); 
+    setupEventListeners();
+    
+    // FIX: Anropa resize-funktionen först när hela sidan laddats
+    window.onload = function() {
+        if (typeof onWindowResize === 'function') {
+             onWindowResize();
+        }
+    };
+    
+    animate();
 }
 
 // --- GENERISK MODELLADDNINGSFUNKTION ---
@@ -69,9 +67,8 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
     const holder = document.getElementById(holderId);
     if (!holder) return;
 
-    // FIX: HÄR ANVÄNDS DEN SÄKRA BREDDEN FÖR ATT FÖRHINDRA KRASCH
-    const safeWidth = holder.clientWidth;
-    const localCamera = new THREE.PerspectiveCamera( 75, safeWidth / 600, 0.01, 20000 ); 
+    // FIX: Använder ett säkert, fast bildförhållande (1.0) för att undvika noll-division
+    const localCamera = new THREE.PerspectiveCamera( 75, 1.0, 0.01, 20000 ); 
     localCamera.position.z = camZ + positionZ; 
     cameras.push(localCamera); 
 
@@ -80,9 +77,9 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
         alpha: true 
     });
     renderer.setClearColor( 0x000000, 0 ); 
-    renderer.setSize( safeWidth, 600 ); 
+    renderer.setSize( holder.clientWidth, 600 ); 
     
-    // Placering
+    // Z-INDEX FIX
     renderer.domElement.style.position = 'relative';
     renderer.domElement.style.zIndex = '50';
     holder.appendChild(renderer.domElement);
@@ -183,6 +180,10 @@ function setupEventListeners() {
     function onWindowResize(){
         renderers.forEach((renderer, index) => {
              const holderWidth = renderer.domElement.parentNode.clientWidth;
+             
+             // FIX: Säkerhetskontroll mot noll-division
+             if (holderWidth === 0) return; 
+             
              const newAspect = holderWidth / 600;
 
              // Uppdatera kameran
