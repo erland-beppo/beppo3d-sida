@@ -20,6 +20,7 @@ let canvasElements = [];
 function handleRotationEvent(event) {
     if (!isDragging || loadedModels.length === 0) return;
     
+    // Hämta inputkoordinaterna: Använder touch om det finns, annars mus.
     const clientX = event.touches ? event.touches[0].clientX : event.clientX;
     const clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
@@ -44,7 +45,7 @@ function init() {
     // Ladda BÅDA modellerna i sina respektive hållare
     // load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotationX)
     
-    // Modell 1: Rosa/röd färg (Standard framåtvinkel)
+    // Modell 1: Rosa/röd färg (Standard framåtvinkel: 0)
     load3DModel(MODEL_FILE_1, 'canvas-holder-1', 250, 0xfc5858, 0.6, 0, 0); 
     
     // Modell 2: Ljusblå (Zoom 60, Vinklad uppifrån)
@@ -59,10 +60,10 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
     const holder = document.getElementById(holderId);
     if (!holder) return;
 
-    // FIX: Använder window.innerWidth för ett säkert bildförhållande
+    // 1. Skapa lokal kamera och renderer
     const localCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / 600, 0.01, 20000 ); 
     localCamera.position.z = camZ + positionZ; 
-    cameras.push(localCamera); 
+    cameras.push(localCamera); // KRITISK FIX: Lägg till i globala kameror
 
     const renderer = new THREE.WebGLRenderer({ 
         antialias: true, 
@@ -71,7 +72,7 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
     renderer.setClearColor( 0x000000, 0 ); 
     renderer.setSize( holder.clientWidth, 600 ); 
     
-    // Z-INDEX FIX
+    // 2. Placering och Z-Index
     renderer.domElement.style.position = 'relative';
     renderer.domElement.style.zIndex = '50';
     holder.appendChild(renderer.domElement);
@@ -79,7 +80,7 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
     renderers.push(renderer); 
     canvasElements.push(renderer.domElement); 
 
-    // Ljus
+    // 3. Ljus
     const ambientLight = new THREE.AmbientLight( 0xffffff, 0.8 ); 
     scene.add( ambientLight );
     const directionalLight = new THREE.DirectionalLight( 0xffffff, 1.5 ); 
@@ -112,7 +113,7 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
                 }
             });
             
-            // SKALNING OCH POSITIONERING
+            // 5. SKALNING OCH POSITIONERING
             model.scale.set(500, 500, 500); 
             model.position.set(0, 0, positionZ); 
             
