@@ -52,6 +52,14 @@ function init() {
     load3DModel(MODEL_FILE_2, 'canvas-holder-2', 60, 0x0061ff, 0.9, 10000, -Math.PI / 3); 
     
     setupEventListeners();
+    
+    // FIX: Anropa resize-funktionen först när hela sidan laddats
+    window.onload = function() {
+        if (typeof onWindowResize === 'function') {
+             onWindowResize();
+        }
+    };
+    
     animate();
 }
 
@@ -60,10 +68,10 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
     const holder = document.getElementById(holderId);
     if (!holder) return;
 
-    // 1. Skapa lokal kamera och renderer
-    const localCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / 600, 0.01, 20000 ); 
+    // FIX: Använder ett säkert, fast bildförhållande (1.0) för att undvika noll-division
+    const localCamera = new THREE.PerspectiveCamera( 75, 1.0, 0.01, 20000 ); 
     localCamera.position.z = camZ + positionZ; 
-    cameras.push(localCamera); // KRITISK FIX: Lägg till i globala kameror
+    cameras.push(localCamera); 
 
     const renderer = new THREE.WebGLRenderer({ 
         antialias: true, 
@@ -72,7 +80,7 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
     renderer.setClearColor( 0x000000, 0 ); 
     renderer.setSize( holder.clientWidth, 600 ); 
     
-    // 2. Placering och Z-Index
+    // Z-INDEX FIX
     renderer.domElement.style.position = 'relative';
     renderer.domElement.style.zIndex = '50';
     holder.appendChild(renderer.domElement);
@@ -80,7 +88,7 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
     renderers.push(renderer); 
     canvasElements.push(renderer.domElement); 
 
-    // 3. Ljus
+    // Ljus
     const ambientLight = new THREE.AmbientLight( 0xffffff, 0.8 ); 
     scene.add( ambientLight );
     const directionalLight = new THREE.DirectionalLight( 0xffffff, 1.5 ); 
@@ -113,7 +121,7 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
                 }
             });
             
-            // 5. SKALNING OCH POSITIONERING
+            // SKALNING OCH POSITIONERING
             model.scale.set(500, 500, 500); 
             model.position.set(0, 0, positionZ); 
             
