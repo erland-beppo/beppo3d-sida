@@ -174,25 +174,6 @@ function setupEventListeners() {
             handleRotationEvent(event);
         }, { passive: false });
     });
-
-
-    // FÖNSTERSTORLEK:
-    window.addEventListener( 'resize', onWindowResize, false ); 
-    function onWindowResize(){
-        renderers.forEach((renderer, index) => {
-             const holderWidth = renderer.domElement.parentNode.clientWidth;
-             const newAspect = holderWidth / 600;
-
-             // Uppdatera kameran
-             if (cameras[index]) {
-                 cameras[index].aspect = newAspect;
-                 cameras[index].updateProjectionMatrix();
-             }
-             // Uppdatera renderstorleken
-             renderer.setSize( holderWidth, 600 );
-        });
-    }
 }
-
 // Kör igång allting!
 init();
