@@ -16,26 +16,6 @@ let cameras = [];
 let canvasElements = []; 
 
 
-// --- FUNKTION FÖR ROTATION (MÅSTE VARA GLOBAL) ---
-function handleRotationEvent(event) {
-    if (!isDragging || loadedModels.length === 0) return;
-    
-    // Hämta inputkoordinaterna: Använder touch om det finns, annars mus.
-    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-
-    // Beräkna normaliserad position
-    const xNormalized = (clientX / window.innerWidth) - 0.5;
-    const yNormalized = (clientY / 600) - 0.5; 
-    
-    // Roterar BÅDA modellerna samtidigt
-    loadedModels.forEach(model => {
-        model.rotation.y = xNormalized * SENSITIVITY * Math.PI * 2;
-        model.rotation.x = yNormalized * SENSITIVITY * Math.PI * 2;
-    });
-}
-
-
 // --- 1. STARTFUNKTION OCH INITIERING ---
 function init() {
     // Skapar EN global scen
@@ -77,9 +57,9 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
     holder.appendChild(renderer.domElement);
     
     renderers.push(renderer); 
-    canvasElements.push(renderer.domElement); 
+    canvasElements.push(renderer.domElement); // Lagra DOM-elementet för eventlyssnare
 
-    // 3. Ljus (Justering för mindre starkt ljus)
+    // 3. Ljus
     const ambientLight = new THREE.AmbientLight( 0xffffff, 0.8 ); 
     scene.add( ambientLight );
     const directionalLight = new THREE.DirectionalLight( 0xffffff, 1.5 ); 
@@ -135,7 +115,7 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
 function animate() {
     requestAnimationFrame( animate );
     
-    // Rendera scenen med den LOKALA KAMERAN
+    // RENDER FIX: Rendera scenen med den LOKALA KAMERAN
     renderers.forEach((renderer, index) => {
         if (cameras[index]) {
             renderer.render(scene, cameras[index]);
@@ -143,43 +123,64 @@ function animate() {
     });
 }
 
+// NY FUNKTION: Hanterar både mus och touch-input
+function handleRotationEvent(event) {
+    if (!isDragging || loadedModels.length === 0) return;
+    
+    // Hämta inputkoordinaterna: Använder touch om det finns, annars mus.
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+    
+    // Beräkna höjden av 3D-vyn för Y-normalisering
+    const viewHeight = 600; 
+
+    // Beräkna normaliserad position
+    const xNormalized = (clientX / window.innerWidth) - 0.5;
+    const yNormalized = (clientY / viewHeight) - 0.5; 
+    
+    // Roterar BÅDA modellerna samtidigt
+    loadedModels.forEach(model => {
+        model.rotation.y = xNormalized * SENSITIVITY * Math.PI * 2;
+        model.rotation.x = yNormalized * SENSITIVITY * Math.PI * 2;
+    });
+}
+
+
 function setupEventListeners() {
-    // MUSKONTROLL:
+    // MUSKONTROLL (fästs vid alla renderade canvasar):
     canvasElements.forEach(canvas => {
         // Mus-events:
         canvas.addEventListener('mousedown', () => { isDragging = true; });
         document.addEventListener('mouseup', () => { isDragging = false; });
         canvas.addEventListener('mousemove', handleRotationEvent); 
-        
-        // KRITISK FIX: Touch-events för mobilen
-        // touchstart: FÖRHINDRAR ZOOM och startar dragning
+
+        // Touch-events för mobilen (KRITISK FIX)
         canvas.addEventListener('touchstart', (event) => {
             event.preventDefault(); 
             isDragging = true;
             handleRotationEvent(event);
-        }, { passive: false }); // { passive: false } KRÄVS FÖR preventDefault
+        }, { passive: false }); 
         
         document.addEventListener('touchend', () => { isDragging = false; });
         
-        // touchmove: MÅSTE förhindra skrollning
         canvas.addEventListener('touchmove', (event) => {
-            event.preventDefault(); // KRITISK FIX: FÖRHINDRAR SKROLLNING
+            event.preventDefault(); // FÖRHINDRAR SKROLLNING/ZOOM
             handleRotationEvent(event);
-        }, { passive: false }); // { passive: false } KRÄVS FÖR preventDefault
+        }, { passive: false });
     });
 
 
     // FÖNSTERSTORLEK:
     window.addEventListener( 'resize', onWindowResize, false ); 
     function onWindowResize(){
-        renderers.forEach(renderer => {
+        renderers.forEach((renderer, index) => {
              const holderWidth = renderer.domElement.parentNode.clientWidth;
              const newAspect = holderWidth / 600;
 
              // Uppdatera kameran
-             if (renderer.myCamera) {
-                 renderer.myCamera.aspect = newAspect;
-                 renderer.myCamera.updateProjectionMatrix();
+             if (cameras[index]) {
+                 cameras[index].aspect = newAspect;
+                 cameras[index].updateProjectionMatrix();
              }
              // Uppdatera renderstorleken
              renderer.setSize( holderWidth, 600 );
