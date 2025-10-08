@@ -24,7 +24,7 @@ function init() {
 
     setupView('canvas-holder-1', './verk1.glb', 250, 0xfc5858, 0.8, 0);
     setupView('canvas-holder-2', './studios.glb', 150, 0x0061ff, 0.9, -Math.PI / 12);
-    
+
     addLights();
     setupEventListeners();
     animate();
@@ -37,7 +37,7 @@ function setupView(holderId, modelPath, camZ, color, opacity, rotationX) {
 
     const camera = new THREE.PerspectiveCamera(75, holder.clientWidth / holder.clientHeight, 0.1, 1000);
     camera.position.z = camZ;
-    
+
     const view = {
         holder: holder,
         camera: camera,
@@ -49,7 +49,7 @@ function setupView(holderId, modelPath, camZ, color, opacity, rotationX) {
         const model = gltf.scene;
         model.scale.set(500, 500, 500);
         model.rotation.x = rotationX;
-        
+
         model.traverse((child) => {
             if (child.isMesh) {
                 child.material = new THREE.MeshStandardMaterial({
@@ -61,7 +61,7 @@ function setupView(holderId, modelPath, camZ, color, opacity, rotationX) {
                 });
             }
         });
-        
+
         scene.add(model);
         view.model = model;
     });
@@ -87,7 +87,7 @@ function animate() {
         const positiveY = renderer.domElement.clientHeight - bottom;
         renderer.setScissor(left, positiveY, width, height);
         renderer.setViewport(left, positiveY, width, height);
-        
+
         view.camera.aspect = width / height;
         view.camera.updateProjectionMatrix();
 
@@ -96,7 +96,7 @@ function animate() {
     renderer.setScissorTest(false);
 }
 
-// --- EVENT LISTENERS ---
+// --- EVENT LISTENERS FÖR INTERAKTION ---
 function setupEventListeners() {
     let isDragging = false;
 
@@ -147,4 +147,5 @@ function setupEventListeners() {
     });
 }
 
+// --- STARTA ALLT ---
 init();
