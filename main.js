@@ -2,20 +2,17 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.m
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
 
 const SENSITIVITY = 0.5;
-const instances = []; // En array för att hålla våra två 3D-instanser
+const instances = [];
 
 // Funktion för att skapa en komplett 3D-instans
 function createThreeInstance(config) {
     const holder = document.getElementById(config.holderId);
-    if (!holder) {
-        console.error(`Holder element with id ${config.holderId} not found.`);
-        return;
-    }
+    if (!holder) return;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(75, holder.clientWidth / 600, 0.1, 1000);
     camera.position.z = config.camZ;
-
+    
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setSize(holder.clientWidth, 600);
     renderer.setClearColor(0x000000, 0);
@@ -48,29 +45,29 @@ function createThreeInstance(config) {
         console.log(`Model ${config.modelPath} loaded successfully.`);
     });
     
-    const instance = { holder, renderer, scene, camera, modelRef: () => model };
+    const instance = { renderer, scene, camera };
     instances.push(instance);
 
-    // Event listeners specifika för denna canvas
     let isDragging = false;
     renderer.domElement.addEventListener('mousedown', () => { isDragging = true; });
-    renderer.domElement.addEventListener('touchstart', () => { isDragging = true; });
+    renderer.domElement.addEventListener('touchstart', (e) => { e.preventDefault(); isDragging = true; }, { passive: false });
+    
+    document.addEventListener('mouseup', () => { isDragging = false; });
+    document.addEventListener('touchend', () => { isDragging = false; });
 
     const handleRotation = (clientX) => {
         if (!isDragging || !model) return;
         const xNormalized = (clientX / window.innerWidth) - 0.5;
         model.rotation.y = xNormalized * SENSITIVITY * Math.PI * 2;
     };
-
-    renderer.domElement.addEventListener('mousemove', (e) => handleRotation(e.clientX));
-    renderer.domElement.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        handleRotation(e.touches[0].clientX);
+    
+    document.addEventListener('mousemove', (e) => handleRotation(e.clientX));
+    document.addEventListener('touchmove', (e) => {
+        if (isDragging) {
+            e.preventDefault();
+            handleRotation(e.touches[0].clientX);
+        }
     }, { passive: false });
-
-    // Globala "släpp"-händelser
-    document.addEventListener('mouseup', () => { isDragging = false; });
-    document.addEventListener('touchend', () => { isDragging = false; });
 }
 
 // Animation loop som hanterar alla instanser
@@ -81,7 +78,7 @@ function animate() {
     });
 }
 
-// Skapa våra två 3D-vyer
+// ---- STARTA ALLT ----
 createThreeInstance({
     holderId: 'canvas-holder-1',
     modelPath: './verk1.glb',
@@ -100,5 +97,4 @@ createThreeInstance({
     rotationX: -Math.PI / 12
 });
 
-// Starta den globala animationsloopen
 animate();
