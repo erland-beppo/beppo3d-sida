@@ -2,191 +2,123 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js';
 import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
 
-
-// --- KONSTANTER OCH GLOBALA VARIABLER ---
-const SENSITIVITY = 0.5;
-const MODEL_FILE_1 = './verk1.glb'; 
-const MODEL_FILE_2 = './studios.glb';
-
+// --- GLOBALA VARIABLER ---
+let scene, camera, renderer, model;
 let isDragging = false;
-let loadedModels = [];
-let renderers = [];
-let scene;
-let cameras = [];
-let canvasElements = [];
+const sensitivity = 0.5;
 
-
-// --- FUNKTION FÖR ROTATION ---
-function handleRotationEvent(event) {
-    if (!isDragging || loadedModels.length === 0) return;
-
-    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-
-    const viewHeight = 600;
-
-    const xNormalized = (clientX / window.innerWidth) - 0.5;
-    const yNormalized = (clientY / viewHeight) - 0.5;
-
-    loadedModels.forEach(model => {
-        model.rotation.y = xNormalized * SENSITIVITY * Math.PI * 2;
-        model.rotation.x = yNormalized * SENSITIVITY * Math.PI * 2;
-    });
-}
-
-
-// --- 1. STARTFUNKTION OCH INITIERING ---
+// --- STARTFUNKTION ---
 function init() {
-    console.log("Initializing Beppo3D script...");
+    console.log("Initializing simplified debug script...");
+
+    // Hämta behållaren för vår canvas
+    const holder = document.getElementById('canvas-holder-1');
+    if (!holder) {
+        console.error("Kunde inte hitta div med id='canvas-holder-1'");
+        return;
+    }
+
+    // 1. Skapa en scen
     scene = new THREE.Scene();
-    
+
+    // 2. Skapa en kamera
+    camera = new THREE.PerspectiveCamera(75, holder.clientWidth / 600, 0.1, 1000);
+    camera.position.z = 250; // Flytta kameran bakåt så vi ser objektet
+
+    // 3. Skapa en renderer
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(holder.clientWidth, 600);
+    renderer.setClearColor(0x000000, 0); // Transparent bakgrund
+    holder.appendChild(renderer.domElement);
+
+    // 4. Lägg till ljus
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     scene.add(ambientLight);
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
     directionalLight.position.set(5, 10, 5).normalize();
     scene.add(directionalLight);
 
-    load3DModel(MODEL_FILE_1, 'canvas-holder-1', 250, 0xfc5858, 0.6, 0, 0);
-    load3DModel(MODEL_FILE_2, 'canvas-holder-2', 60, 0x0061ff, 0.9, 0, -Math.PI / 3);
-
-    setupEventListeners();
-    window.addEventListener('load', onWindowResize, false);
-    
-    animate();
-}
-
-// --- GENERISK MODELLADDNINGSFUNKTION ---
-function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotationX) {
-    console.log(`Attempting to load model '${file}' into '#${holderId}'`);
-    const holder = document.getElementById(holderId);
-    if (!holder) {
-        console.error(`Error: Could not find container with id '${holderId}'.`);
-        return;
-    }
-
-    const localCamera = new THREE.PerspectiveCamera(75, holder.clientWidth / 600, 0.1, 20000);
-    localCamera.position.z = camZ;
-    cameras.push(localCamera);
-
-    const renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true
-    });
-    renderer.setClearColor(0x000000, 0);
-    renderer.setSize(holder.clientWidth, 600);
-
-    renderer.domElement.style.position = 'relative';
-    renderer.domElement.style.zIndex = '50';
-    holder.appendChild(renderer.domElement);
-
-    renderers.push(renderer);
-    canvasElements.push(renderer.domElement);
-
+    // 5. Ladda 3D-modellen
     const loader = new GLTFLoader();
     loader.load(
-        file,
-        function (gltf) {
-            const model = gltf.scene;
-            
+        './verk1.glb', // Sökväg till din första modell
+        (gltf) => {
+            console.log("Model loaded successfully!");
+            model = gltf.scene;
+
+            // Anpassa materialet på modellen
             model.traverse((child) => {
                 if (child.isMesh) {
-                    const originalMaterial = child.material;
-                    const newMaterial = originalMaterial.clone();
-
-                    newMaterial.color.setHex(colorHex);
-                    newMaterial.metalness = 0.1;
-                    newMaterial.roughness = 0.8;
-                    newMaterial.vertexColors = false;
-                    newMaterial.transparent = true;
-                    newMaterial.opacity = opacity;
-                    newMaterial.needsUpdate = true;
-
-                    child.material = newMaterial;
+                    child.material = new THREE.MeshStandardMaterial({
+                        color: 0xfc5858,
+                        metalness: 0.1,
+                        roughness: 0.8,
+                        transparent: true,
+                        opacity: 0.8
+                    });
                 }
             });
 
+            // Skala och positionera
             model.scale.set(500, 500, 500);
-            model.position.set(0, 0, positionZ);
-            model.rotation.y = Math.PI / 4;
-            model.rotation.x = rotationX;
-
-            const modelWrapper = new THREE.Group();
-            modelWrapper.add(model);
-            scene.add(modelWrapper);
-
-            loadedModels.push(modelWrapper);
-            console.log(`Successfully loaded and added '${file}' to the scene.`);
+            model.position.set(0, 0, 0);
+            scene.add(model);
+            console.log("Model added to the scene!");
+            
+            // Starta renderingsloopen FÖRST när modellen är laddad
+            animate();
         },
-        function (xhr) {
-            // FIX: Ändrade från 'total' till 'xhr.total'
-            if (xhr.total > 0) {
-                 console.log(`Model '${file}': ` + (xhr.loaded / xhr.total * 100) + '% loaded');
-            }
-        },
-        function (error) {
-            console.error(`An error occurred while loading model '${file}':`, error);
-            holder.innerHTML = `<p style="color: red; text-align: center; padding: 20px;">
-                Kunde inte ladda 3D-modell: ${file}.<br>
-                Kontrollera webbläsarens konsol (tryck F12) för mer information.
-                </p>`;
+        undefined, // Vi hoppar över progress-funktionen för nu
+        (error) => {
+            console.error('Ett fel inträffade vid laddning av modellen:', error);
+            holder.innerHTML = `<p style="color: red;">Ett fel inträffade. Modellen kunde inte laddas.</p>`;
         }
     );
+
+    // 6. Sätt upp event listeners för rotation
+    setupEventListeners();
 }
 
-
-// --- HUVUDLOOP OCH EVENT-HANTERING ---
+// --- RENDERINGS-LOOP ---
 function animate() {
     requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+}
 
-    renderers.forEach((renderer, index) => {
-        if (cameras[index]) {
-            renderer.render(scene, cameras[index]);
-        }
-    });
+// --- FUNKTIONER FÖR INTERAKTION OCH FÖNSTERÄNDRING ---
+function handleRotationEvent(event) {
+    if (!isDragging || !model) return;
+    
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+
+    const xNormalized = (clientX / window.innerWidth) - 0.5;
+    const yNormalized = (clientY / 600) - 0.5;
+    
+    model.rotation.y = xNormalized * sensitivity * Math.PI * 2;
+    model.rotation.x = yNormalized * sensitivity * Math.PI * 2;
 }
 
 function onWindowResize() {
-    renderers.forEach((renderer, index) => {
-        const holder = renderer.domElement.parentNode;
-        if (!holder) return;
-
-        const holderWidth = holder.clientWidth;
-        const holderHeight = 600;
-
-        if (holderWidth === 0) return;
-
-        const newAspect = holderWidth / holderHeight;
-
-        if (cameras[index]) {
-            cameras[index].aspect = newAspect;
-            cameras[index].updateProjectionMatrix();
-        }
-        renderer.setSize(holderWidth, holderHeight);
-    });
+    const holder = document.getElementById('canvas-holder-1');
+    if (!holder) return;
+    camera.aspect = holder.clientWidth / 600;
+    camera.updateProjectionMatrix();
+    renderer.setSize(holder.clientWidth, 600);
 }
-
 
 function setupEventListeners() {
+    renderer.domElement.addEventListener('mousedown', () => { isDragging = true; });
     document.addEventListener('mouseup', () => { isDragging = false; });
-    document.addEventListener('touchend', () => { isDragging = false; });
-    document.addEventListener('mousemove', handleRotationEvent); 
-    document.addEventListener('touchmove', (event) => {
-        if (isDragging) {
-            event.preventDefault();
-            handleRotationEvent(event);
-        }
-    }, { passive: false });
-
-    canvasElements.forEach(canvas => {
-        canvas.addEventListener('mousedown', () => { isDragging = true; });
-        canvas.addEventListener('touchstart', (event) => {
-            isDragging = true;
-            handleRotationEvent(event);
-        }, { passive: false });
-    });
+    document.addEventListener('mouseleave', () => { isDragging = false; });
+    document.addEventListener('mousemove', handleRotationEvent);
     
-    window.addEventListener('resize', onWindowResize, false);
+    renderer.domElement.addEventListener('touchstart', (e) => { isDragging = true; handleRotationEvent(e); });
+    document.addEventListener('touchend', () => { isDragging = false; });
+    document.addEventListener('touchmove', handleRotationEvent);
+
+    window.addEventListener('resize', onWindowResize);
 }
 
-// Kör igång allting!
+// --- KÖR SCRIPTET ---
 init();
