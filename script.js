@@ -28,7 +28,6 @@ function handleRotationEvent(event) {
     const xNormalized = (clientX / window.innerWidth) - 0.5;
     const yNormalized = (clientY / viewHeight) - 0.5; 
     
-    // Roterar BÅDA modellerna samtidigt
     loadedModels.forEach(model => {
         model.rotation.y = xNormalized * SENSITIVITY * Math.PI * 2;
         model.rotation.x = yNormalized * SENSITIVITY * Math.PI * 2;
@@ -52,7 +51,7 @@ function init() {
     
     setupEventListeners();
     
-    // FIX: Anropa resize-funktionen först när hela sidan laddats
+    // NY FIX: Anropa resize-funktionen först när hela sidan laddats
     window.onload = function() {
         if (typeof onWindowResize === 'function') {
              onWindowResize();
@@ -67,7 +66,7 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
     const holder = document.getElementById(holderId);
     if (!holder) return;
 
-    // FIX: Använder ett säkert, fast bildförhållande (1.0) för att undvika noll-division
+    // FIX 1: Använder ett säkert, fast bildförhållande (1.0) för att undvika noll-division
     const localCamera = new THREE.PerspectiveCamera( 75, 1.0, 0.01, 20000 ); 
     localCamera.position.z = camZ + positionZ; 
     cameras.push(localCamera); 
@@ -77,9 +76,11 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
         alpha: true 
     });
     renderer.setClearColor( 0x000000, 0 ); 
-    renderer.setSize( holder.clientWidth, 600 ); 
     
-    // Z-INDEX FIX
+    // FIX 2: Använder window.innerWidth för initial storlek
+    renderer.setSize( window.innerWidth, 600 ); 
+    
+    // Placering
     renderer.domElement.style.position = 'relative';
     renderer.domElement.style.zIndex = '50';
     holder.appendChild(renderer.domElement);
