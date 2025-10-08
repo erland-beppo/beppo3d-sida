@@ -129,25 +129,42 @@ function animate() {
 }
 
 function setupEventListeners() {
-    // MUSKONTROLL:
+    // MUSKONTROLL (Befintlig kod)
     canvasElements.forEach(canvas => {
+        // Mus-events:
         canvas.addEventListener('mousedown', () => { isDragging = true; });
-        canvas.addEventListener('mouseup', () => { isDragging = false; });
-        canvas.addEventListener('mousemove', (event) => {
-            if (!isDragging || loadedModels.length === 0) return;
-            
-            const xNormalized = (event.clientX / window.innerWidth) - 0.5;
-            const yNormalized = (event.clientY / window.innerHeight) - 0.5;
-            
-            // Roterar BÅDA modellerna samtidigt baserat på musrörelse
-            loadedModels.forEach(model => {
-                model.rotation.y = xNormalized * SENSITIVITY * Math.PI * 2;
-                model.rotation.x = yNormalized * SENSITIVITY * Math.PI * 2;
-            });
-        });
+        document.addEventListener('mouseup', () => { isDragging = false; });
+        canvas.addEventListener('mousemove', handleRotationEvent); 
+        
+        // NY FIX: Touch-events för mobilen
+        canvas.addEventListener('touchstart', (event) => {
+            event.preventDefault(); // Förhindra skrollning när du rör 3D-vyn
+            isDragging = true;
+            handleRotationEvent(event); // Anropa rotation direkt vid start
+        }, false);
+        
+        document.addEventListener('touchend', () => { isDragging = false; });
+        canvas.addEventListener('touchmove', handleRotationEvent, false);
     });
 
+// NY FUNKTION: Hanterar både mus och touch-input
+function handleRotationEvent(event) {
+    if (!isDragging || loadedModels.length === 0) return;
+    
+    // Hämta inputkoordinaterna: Använder touch om det finns, annars mus.
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
 
+    // Beräkna normaliserad position baserat på de nya koordinaterna
+    const xNormalized = (clientX / window.innerWidth) - 0.5;
+    const yNormalized = (clientY / 600) - 0.5; 
+    
+    // Roterar BÅDA modellerna samtidigt
+    loadedModels.forEach(model => {
+        model.rotation.y = xNormalized * SENSITIVITY * Math.PI * 2;
+        model.rotation.x = yNormalized * SENSITIVITY * Math.PI * 2;
+    });
+}
     // FÖNSTERSTORLEK:
     window.addEventListener( 'resize', onWindowResize, false ); 
     function onWindowResize(){
