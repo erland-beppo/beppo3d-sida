@@ -16,6 +16,26 @@ let cameras = [];
 let canvasElements = []; 
 
 
+// --- FUNKTION FÖR ROTATION (MÅSTE VARA GLOBAL) ---
+function handleRotationEvent(event) {
+    if (!isDragging || loadedModels.length === 0) return;
+    
+    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
+    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
+
+    const viewHeight = 600; 
+
+    const xNormalized = (clientX / window.innerWidth) - 0.5;
+    const yNormalized = (clientY / viewHeight) - 0.5; 
+    
+    // Roterar BÅDA modellerna samtidigt
+    loadedModels.forEach(model => {
+        model.rotation.y = xNormalized * SENSITIVITY * Math.PI * 2;
+        model.rotation.x = yNormalized * SENSITIVITY * Math.PI * 2;
+    });
+}
+
+
 // --- 1. STARTFUNKTION OCH INITIERING ---
 function init() {
     // Skapar EN global scen
@@ -39,8 +59,8 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
     const holder = document.getElementById(holderId);
     if (!holder) return;
 
-    // 1. Skapa lokal kamera och renderer
-    const localCamera = new THREE.PerspectiveCamera( 75, holder.clientWidth / 600, 0.01, 20000 ); 
+    // FIX: Använder window.innerWidth för ett säkert bildförhållande
+    const localCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / 600, 0.01, 20000 ); 
     localCamera.position.z = camZ + positionZ; 
     cameras.push(localCamera); 
 
@@ -51,15 +71,15 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
     renderer.setClearColor( 0x000000, 0 ); 
     renderer.setSize( holder.clientWidth, 600 ); 
     
-    // 2. Placering och Z-Index
+    // Z-INDEX FIX
     renderer.domElement.style.position = 'relative';
     renderer.domElement.style.zIndex = '50';
     holder.appendChild(renderer.domElement);
     
     renderers.push(renderer); 
-    canvasElements.push(renderer.domElement); // Lagra DOM-elementet för eventlyssnare
+    canvasElements.push(renderer.domElement); 
 
-    // 3. Ljus
+    // Ljus
     const ambientLight = new THREE.AmbientLight( 0xffffff, 0.8 ); 
     scene.add( ambientLight );
     const directionalLight = new THREE.DirectionalLight( 0xffffff, 1.5 ); 
@@ -92,7 +112,7 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
                 }
             });
             
-            // 5. SKALNING OCH POSITIONERING
+            // SKALNING OCH POSITIONERING
             model.scale.set(500, 500, 500); 
             model.position.set(0, 0, positionZ); 
             
@@ -115,7 +135,7 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
 function animate() {
     requestAnimationFrame( animate );
     
-    // RENDER FIX: Rendera scenen med den LOKALA KAMERAN
+    // Rendera scenen med den LOKALA KAMERAN
     renderers.forEach((renderer, index) => {
         if (cameras[index]) {
             renderer.render(scene, cameras[index]);
@@ -123,38 +143,15 @@ function animate() {
     });
 }
 
-// NY FUNKTION: Hanterar både mus och touch-input
-function handleRotationEvent(event) {
-    if (!isDragging || loadedModels.length === 0) return;
-    
-    // Hämta inputkoordinaterna: Använder touch om det finns, annars mus.
-    const clientX = event.touches ? event.touches[0].clientX : event.clientX;
-    const clientY = event.touches ? event.touches[0].clientY : event.clientY;
-    
-    // Beräkna höjden av 3D-vyn för Y-normalisering
-    const viewHeight = 600; 
-
-    // Beräkna normaliserad position
-    const xNormalized = (clientX / window.innerWidth) - 0.5;
-    const yNormalized = (clientY / viewHeight) - 0.5; 
-    
-    // Roterar BÅDA modellerna samtidigt
-    loadedModels.forEach(model => {
-        model.rotation.y = xNormalized * SENSITIVITY * Math.PI * 2;
-        model.rotation.x = yNormalized * SENSITIVITY * Math.PI * 2;
-    });
-}
-
-
 function setupEventListeners() {
-    // MUSKONTROLL (fästs vid alla renderade canvasar):
+    // MUSKONTROLL:
     canvasElements.forEach(canvas => {
-        // Mus-events:
+        // Mus-events
         canvas.addEventListener('mousedown', () => { isDragging = true; });
         document.addEventListener('mouseup', () => { isDragging = false; });
         canvas.addEventListener('mousemove', handleRotationEvent); 
-
-        // Touch-events för mobilen (KRITISK FIX)
+        
+        // Touch-events för mobilen
         canvas.addEventListener('touchstart', (event) => {
             event.preventDefault(); 
             isDragging = true;
@@ -164,7 +161,7 @@ function setupEventListeners() {
         document.addEventListener('touchend', () => { isDragging = false; });
         
         canvas.addEventListener('touchmove', (event) => {
-            event.preventDefault(); // FÖRHINDRAR SKROLLNING/ZOOM
+            event.preventDefault(); // KRITISK FIX: FÖRHINDRAR SKROLLNING/ZOOM
             handleRotationEvent(event);
         }, { passive: false });
     });
