@@ -5,8 +5,8 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/
 
 // --- KONSTANTER OCH GLOBALA VARIABLER ---
 const SENSITIVITY = 0.5;
-const MODEL_FILE_1 = './verk1.glb'; // FIX: Lade till ./ för korrekt sökväg
-const MODEL_FILE_2 = './studios.glb'; // FIX: Lade till ./ för korrekt sökväg
+const MODEL_FILE_1 = './verk1.glb'; 
+const MODEL_FILE_2 = './studios.glb';
 
 let isDragging = false;
 let loadedModels = [];
@@ -40,17 +40,13 @@ function init() {
     console.log("Initializing Beppo3D script...");
     scene = new THREE.Scene();
     
-    // Lägg till ljus i scenen (bara en gång)
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
     scene.add(ambientLight);
     const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
     directionalLight.position.set(5, 10, 5).normalize();
     scene.add(directionalLight);
 
-    // Ladda modell 1
     load3DModel(MODEL_FILE_1, 'canvas-holder-1', 250, 0xfc5858, 0.6, 0, 0);
-
-    // Ladda modell 2 (med förenklad position)
     load3DModel(MODEL_FILE_2, 'canvas-holder-2', 60, 0x0061ff, 0.9, 0, -Math.PI / 3);
 
     setupEventListeners();
@@ -114,16 +110,18 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
             model.rotation.y = Math.PI / 4;
             model.rotation.x = rotationX;
 
-            // Lägg till en "wrapper" för varje modell för unik rotation
             const modelWrapper = new THREE.Group();
             modelWrapper.add(model);
             scene.add(modelWrapper);
 
-            loadedModels.push(modelWrapper); // Rotera wrappern istället för modellen direkt
+            loadedModels.push(modelWrapper);
             console.log(`Successfully loaded and added '${file}' to the scene.`);
         },
         function (xhr) {
-            console.log(`Model '${file}': ` + (xhr.loaded / total * 100) + '% loaded');
+            // FIX: Ändrade från 'total' till 'xhr.total'
+            if (xhr.total > 0) {
+                 console.log(`Model '${file}': ` + (xhr.loaded / xhr.total * 100) + '% loaded');
+            }
         },
         function (error) {
             console.error(`An error occurred while loading model '${file}':`, error);
@@ -153,7 +151,7 @@ function onWindowResize() {
         if (!holder) return;
 
         const holderWidth = holder.clientWidth;
-        const holderHeight = 600; // Fast höjd
+        const holderHeight = 600;
 
         if (holderWidth === 0) return;
 
@@ -169,7 +167,6 @@ function onWindowResize() {
 
 
 function setupEventListeners() {
-    // Gemensamma event listeners för att undvika att musen "fastnar"
     document.addEventListener('mouseup', () => { isDragging = false; });
     document.addEventListener('touchend', () => { isDragging = false; });
     document.addEventListener('mousemove', handleRotationEvent); 
@@ -180,7 +177,6 @@ function setupEventListeners() {
         }
     }, { passive: false });
 
-    // Specifika event listeners för varje canvas
     canvasElements.forEach(canvas => {
         canvas.addEventListener('mousedown', () => { isDragging = true; });
         canvas.addEventListener('touchstart', (event) => {
