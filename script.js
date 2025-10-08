@@ -5,8 +5,8 @@ import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.128.0/examples/
 
 // --- KONSTANTER OCH GLOBALA VARIABLER ---
 const SENSITIVITY = 0.5;
-const MODEL_FILE_1 = 'verk1.glb';
-const MODEL_FILE_2 = 'studios.glb'; // Använder den korrekta filen nu
+const MODEL_FILE_1 = './verk1.glb'; // FIX: Lade till ./ för korrekt sökväg
+const MODEL_FILE_2 = './studios.glb'; // FIX: Lade till ./ för korrekt sökväg
 
 let isDragging = false;
 let loadedModels = [];
@@ -123,7 +123,7 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
             console.log(`Successfully loaded and added '${file}' to the scene.`);
         },
         function (xhr) {
-            console.log(`Model '${file}': ` + (xhr.loaded / xhr.total * 100) + '% loaded');
+            console.log(`Model '${file}': ` + (xhr.loaded / total * 100) + '% loaded');
         },
         function (error) {
             console.error(`An error occurred while loading model '${file}':`, error);
