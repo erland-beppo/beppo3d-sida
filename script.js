@@ -1,24 +1,31 @@
-// --- IMPORT AV MODULER (Den mest stabila länken för GitHub Pages) ---
+// --- IMPORT AV MODULER (Stabil länk) ---
 import * as THREE from 'https://unpkg.com/three@0.128.0/build/three.module.js';
 import { GLTFLoader } from 'https://unpkg.com/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
 
 
 // --- KONSTANTER OCH GLOBALA VARIABLER ---
 const SENSITIVITY = 0.5; 
-const MODEL_FILE_1 = 'verk1.glb'; 
-const MODEL_FILE_2 = 'studios.glb'; 
+// Filnamn för de två modellerna:
+const MODEL_FILE_1 = 'verk1.glb'; // Rosa/röd
+const MODEL_FILE_2 = 'studios.glb'; // Ljusblå
 
 let isDragging = false; 
-let loadedModels = []; 
-let renderers = []; 
+let loadedModel; // Den enda modellen i scenen
 let scene; 
-let cameras = []; 
-let canvasElements = []; 
+let camera; 
+let renderer; 
+let activeModelIndex = 0; // Spårar vilken modell som är aktiv (0 eller 1)
+
+// Inställningar för material
+const MODEL_SETTINGS = [
+    { file: MODEL_FILE_1, color: 0xfc5858, opacity: 0.6, camZ: 250, rotX: 0 },
+    { file: MODEL_FILE_2, color: 0x0061ff, opacity: 0.9, camZ: 60, rotX: -Math.PI / 3 }
+];
 
 
 // --- FUNKTION FÖR ROTATION ---
 function handleRotationEvent(event) {
-    if (!isDragging || loadedModels.length === 0) return;
+    if (!isDragging || !loadedModel) return;
     
     const clientX = event.touches ? event.touches[0].clientX : event.clientX;
     const clientY = event.touches ? event.touches[0].clientY : event.clientY;
@@ -28,117 +35,99 @@ function handleRotationEvent(event) {
     const xNormalized = (clientX / window.innerWidth) - 0.5;
     const yNormalized = (clientY / viewHeight) - 0.5; 
     
-    loadedModels.forEach(model => {
-        model.rotation.y = xNormalized * SENSITIVITY * Math.PI * 2;
-        model.rotation.x = yNormalized * SENSITIVITY * Math.PI * 2;
+    // Roterar den laddade modellen
+    loadedModel.rotation.y = xNormalized * SENSITIVITY * Math.PI * 2;
+    loadedModel.rotation.x = yNormalized * SENSITIVITY * Math.PI * 2;
+}
+
+// --- ÄNDRA MATERIAL BASERAT PÅ INDEX ---
+function applyModelSettings(index) {
+    const settings = MODEL_SETTINGS[index];
+    
+    // Hitta det existerande materialet
+    loadedModel.traverse((child) => {
+        if (child.isMesh) {
+            const material = child.material;
+            
+            material.color.setHex(settings.color);
+            material.opacity = settings.opacity;
+            material.needsUpdate = true;
+        }
     });
+    
+    // Ändra kamerans position och modellens rotation
+    camera.position.z = settings.camZ;
+    loadedModel.rotation.x = settings.rotX;
+    
+    console.log(`Visar nu Modell ${index + 1} (${settings.file})`);
 }
 
-
-// --- 1. STARTFUNKTION OCH INITIERING ---
-function init() {
-    // Skapar EN global scen
-    scene = new THREE.Scene();
-    
-    // NY FIX: Anropas först när hela sidan laddats (löser Division-by-Zero)
-    window.onload = function() {
-        startRenderingPipeline();
-    };
-    
-    setupEventListeners();
-    animate();
-}
-
-// NY FUNKTION: Logik som körs EFTER att HTML-elementen har laddats
-function startRenderingPipeline() {
-    // Ladda BÅDA modellerna i sina respektive hållare
-    // load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotationX)
-    
-    // Modell 1: Rosa/röd färg (Standard framåtvinkel: 0)
-    load3DModel(MODEL_FILE_1, 'canvas-holder-1', 250, 0xfc5858, 0.6, 0, 0); 
-    
-    // Modell 2: Ljusblå (Zoom 60, Vinklad uppifrån)
-    load3DModel(MODEL_FILE_2, 'canvas-holder-2', 60, 0x0061ff, 0.9, 10000, -Math.PI / 3); 
-    
-    // Nödvändigt anrop för att få rätt storlek direkt
-    onWindowResize(); 
-}
-
-// --- GENERISK MODELLADDNINGSFUNKTION ---
-function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotationX) {
-    const holder = document.getElementById(holderId);
-    if (!holder) return;
-
-    // FIX: Använder en säker, fast bildförhållande (1.0) vid initiering
-    const localCamera = new THREE.PerspectiveCamera( 75, 1.0, 0.01, 20000 ); 
-    localCamera.position.z = camZ + positionZ; 
-    cameras.push(localCamera); 
-
-    const renderer = new THREE.WebGLRenderer({ 
-        antialias: true, 
-        alpha: true 
-    });
-    renderer.setClearColor( 0x000000, 0 ); 
-    renderer.setSize( holder.clientWidth, 600 ); 
-    
-    // Z-INDEX FIX
-    renderer.domElement.style.position = 'relative';
-    renderer.domElement.style.zIndex = '50';
-    holder.appendChild(renderer.domElement);
-    
-    renderers.push(renderer); 
-    canvasElements.push(renderer.domElement); 
-
-    // Ljus
+// --- LADDAR MODELL OCH LJUS (ENDAST EN GÅNG) ---
+function loadModel() {
+    // Lägg till Ljus
     const ambientLight = new THREE.AmbientLight( 0xffffff, 0.8 ); 
     scene.add( ambientLight );
     const directionalLight = new THREE.DirectionalLight( 0xffffff, 1.5 ); 
     directionalLight.position.set( 5, 10, 5 ).normalize();
     scene.add( directionalLight );
 
-
     const loader = new GLTFLoader(); 
+    // Vi laddar den första modellen och använder den som bas
     loader.load(
-        file,
+        MODEL_FILE_1, 
         function ( gltf ) {
-            const model = gltf.scene; 
-            scene.add( model );
+            loadedModel = gltf.scene; 
+            scene.add( loadedModel );
 
-            // FÄRGFIX OCH MATERIAL
-            model.traverse((child) => {
-                 if (child.isMesh) {
-                    const originalMaterial = child.material;
-                    const newMaterial = originalMaterial.clone(); 
-                    
-                    newMaterial.color.setHex( colorHex ); 
-                    newMaterial.metalness = 0.1;
-                    newMaterial.roughness = 0.8;
-                    newMaterial.vertexColors = false; 
-                    newMaterial.transparent = true; 
-                    newMaterial.opacity = opacity; 
-                    newMaterial.needsUpdate = true;
-                    
-                    child.material = newMaterial;
-                }
-            });
+            // Sätter initial skala
+            loadedModel.scale.set(500, 500, 500); 
+            loadedModel.position.set(0, 0, 0); 
+            loadedModel.rotation.y = Math.PI / 4; 
             
-            // SKALNING OCH POSITIONERING
-            model.scale.set(500, 500, 500); 
-            model.position.set(0, 0, positionZ); 
+            // Applica de initiala rosa inställningarna
+            applyModelSettings(0); 
             
-            model.rotation.y = Math.PI / 4; 
-            model.rotation.x = rotationX; 
-            
-            loadedModels.push(model); 
-            console.log(`Modell ${file} laddad och redo.`);
+            console.log("Modell laddad och initierad.");
         }, 
         function ( xhr ) {
             console.log( ( xhr.loaded / xhr.total * 100 ) + '% laddad' );
         },
         function ( error ) {
-            console.error( `Ett fel uppstod vid laddning av ${file}:`, error );
+            console.error( `Ett fel uppstod vid laddning av ${MODEL_FILE_1}:`, error );
         }
     );
+}
+
+// --- 1. STARTFUNKTION OCH INITIERING ---
+function init() {
+    // 1. Skapar EN global scen, EN kamera, EN renderare
+    scene = new THREE.Scene();
+    
+    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / 600, 0.01, 20000 ); 
+    camera.position.z = MODEL_SETTINGS[0].camZ; // Sätter initial position
+
+    renderer = new THREE.WebGLRenderer({ 
+        antialias: true, 
+        alpha: true 
+    });
+    renderer.setClearColor( 0x000000, 0 ); 
+    renderer.setSize( window.innerWidth, 600 ); 
+    
+    // Z-INDEX FIX
+    renderer.domElement.style.position = 'relative';
+    renderer.domElement.style.zIndex = '50';
+    
+    // Fäst renderaren i den första hållaren
+    const holder1 = document.getElementById('canvas-holder-1');
+    if (holder1) {
+        holder1.appendChild(renderer.domElement); 
+    } else {
+        document.body.appendChild(renderer.domElement); 
+    }
+    
+    loadModel(); 
+    setupEventListeners();
+    animate();
 }
 
 // --- HUVUDLOOP OCH EVENT-HANTERING ---
@@ -146,57 +135,47 @@ function animate() {
     requestAnimationFrame( animate );
     
     // Rendera scenen med den LOKALA KAMERAN
-    renderers.forEach((renderer, index) => {
-        if (cameras[index]) {
-            renderer.render(scene, cameras[index]);
-        }
-    });
+    if (loadedModel) {
+        renderer.render(scene, camera);
+    }
 }
 
 function setupEventListeners() {
     // MUSKONTROLL:
-    canvasElements.forEach(canvas => {
-        // Mus-events
-        canvas.addEventListener('mousedown', () => { isDragging = true; });
-        document.addEventListener('mouseup', () => { isDragging = false; });
-        canvas.addEventListener('mousemove', handleRotationEvent); 
-        
-        // Touch-events för mobilen
-        canvas.addEventListener('touchstart', (event) => {
-            event.preventDefault(); 
-            isDragging = true;
-            handleRotationEvent(event);
-        }, { passive: false }); 
-        
-        document.addEventListener('touchend', () => { isDragging = false; });
-        
-        canvas.addEventListener('touchmove', (event) => {
-            event.preventDefault(); // KRITISK FIX: FÖRHINDRAR SKROLLNING/ZOOM
-            handleRotationEvent(event);
-        }, { passive: false });
-    });
+    const mainCanvas = renderer.domElement;
+
+    mainCanvas.addEventListener('mousedown', () => { isDragging = true; });
+    document.addEventListener('mouseup', () => { isDragging = false; });
+    mainCanvas.addEventListener('mousemove', handleRotationEvent); 
+    
+    mainCanvas.addEventListener('touchstart', (event) => {
+        event.preventDefault(); 
+        isDragging = true;
+        handleRotationEvent(event);
+    }, { passive: false }); 
+    
+    document.addEventListener('touchend', () => { isDragging = false; });
+    
+    mainCanvas.addEventListener('touchmove', (event) => {
+        event.preventDefault(); 
+        handleRotationEvent(event);
+    }, { passive: false });
 
 
     // FÖNSTERSTORLEK:
     window.addEventListener( 'resize', onWindowResize, false ); 
     function onWindowResize(){
-        renderers.forEach((renderer, index) => {
-             const holderWidth = renderer.domElement.parentNode.clientWidth;
-             
-             // FIX: Säkerhetskontroll mot noll-division
-             if (holderWidth === 0) return; 
-             
-             const newAspect = holderWidth / 600;
-
-             // Uppdatera kameran
-             if (cameras[index]) {
-                 cameras[index].aspect = newAspect;
-                 cameras[index].updateProjectionMatrix();
-             }
-             // Uppdatera renderstorleken
-             renderer.setSize( holderWidth, 600 );
-        });
+        camera.aspect = window.innerWidth / 600;
+        camera.updateProjectionMatrix();
+        renderer.setSize( window.innerWidth, 600 );
     }
+    
+    // FIX: Lägg till klick för att byta modell
+    mainCanvas.addEventListener('click', () => {
+        // Växla index mellan 0 och 1
+        activeModelIndex = 1 - activeModelIndex; 
+        applyModelSettings(activeModelIndex);
+    });
 }
 
 // Kör igång allting!
