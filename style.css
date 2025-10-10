@@ -1,39 +1,39 @@
 /* ======================================================================
-   GLOBAL STYLES (Sätts på body och ärvs av nästan alla element)
+   GLOBAL STYLES 
    ====================================================================== */
 body {
     margin: 0;
     padding: 0;
-    /* Tvingar body att vara minst dubbelt så hög som fönstret för skrollning */
-    min-height: 350vh; 
+    min-height: 200vh; /* Tvingar skrollning */
     
-    /* Din bakgrundsfärg */
     background-color: #8cffe0; 
     
     /* GLOBAL TYPSNITT */
     font-family: 'Courier New', Courier, monospace;
-    font-weight: 400; /* Standardvikt */
+    font-weight: 400; 
     color: #000000;
     line-height: 1.6;
 }
 
 /* ======================================================================
-   3D MODELLER OCH HÅLLARE
+   3D MODELL OCH HÅLLARE
    ====================================================================== */
 
-/* Hållare för BÅDA 3D-vyerna */
-#canvas-holder-1, #canvas-holder-2 {
+/* Använder holder-1 som basen */
+#canvas-holder-1 {
     width: 100vw;
-    height: 600px; /* Standardhöjd för 3D-vyn */
+    height: 600px; 
     background-color: transparent; 
     
-    /* Z-INDEX FIX: KRÄVS för att ligga framför färgblock */
+    /* Z-INDEX FIX för att synas framför ALLT */
     position: relative; 
     z-index: 50; 
-    margin-bottom: 0px; 
+}
+#canvas-holder-2 {
+    /* Måste vara definierad, men kommer vara tom */
+    height: 0;
 }
 
-/* Canvasen tar upp plats i hållaren */
 canvas {
     display: block;
 }
@@ -42,143 +42,61 @@ canvas {
    LOGGA OCH RUBRIKER
    ====================================================================== */
 
-/* Loggan: Placerad till vänster */
 #header-logo {
     max-width: 150px; 
     height: auto; 
     display: block; 
-    /* Vänsterställd med marginal under loggan */
     margin: 0 0 30px 20px; 
-    /* Padding för att linjera med texten, om du vill */
     padding-left: 0; 
 }
 
-/* Stil för alla H1, H2 (Ärver typsnitt, ändrar vikt och storlek) */
-h1, h2 {
-    font-weight: 300; /* Din valda tunna vikt */
+h1 {
+    font-weight: 100; 
+    font-size: 1.5em; 
     color: #000000;
-    font-size: 1.8em;
+    margin-bottom: 5px; 
     padding-left: 20px; 
-    margin-top: 0;
-    margin-bottom: 10px;
+}
+h2 {
+    font-weight: 700; 
+    font-size: 1.5em; 
+    color: #333;
+    margin-bottom: 5px; 
+    padding-left: 20px; 
 }
 
 /* ======================================================================
    TEXTBLOCK (SPACER & CONTENT 2)
    ====================================================================== */
 
-/* TEXTBLOCK 1 (#spacer) */
 #spacer {
-    padding-top: 30px;
+    padding-top: 20px;
     padding-bottom: 20px;
     background-color: transparent; 
+    margin-bottom: 20px; /* Lägg till lite standardmarginal */
 }
 
-/* Stilar för det andra textblocket (Content 2) */
 #content-2 {
-    /* ... andra stilar ... */
-
-    /* FIX: ÖKA NEGATIV MARGINAL HÄR. Testa med -300px eller mer. */
-    margin-top: -200px; 
+    min-height: 500px; 
+    padding: 20px;
+    background-color: transparent; 
+    margin-top: 50px; /* Standardmarginal under 3D-vyn */
 }
 
-/* Underrubriker i Content 2 får också padding */
-#content-2 h2 {
-    padding-left: 0; /* Tar bort extra padding inuti blocket */
-}
-
-/* P-taggar i båda blocken */
 #spacer p, #content-2 p {
     font-size: 1.0em; 
-    padding-left: 20px; /* Säkerställer att brödtexten linjerar */
+    padding-left: 20px; 
 }
 
-
-/* ======================================================================
-   PERSONAL ÖVERSIKT (GRID)
-   ====================================================================== */
-#personal-header {
-    /* FIX: Dra upp rubriken för personalen ordentligt */
-    margin-top: -90px; 
-    padding-top: 20px;
+/* FOOTER */
+#main-footer {
+    background-color: #f0f0f0; 
+    text-align: center;
+    padding: 15px 0;
+    width: 100%;
 }
-#personal-header h1 {
-    padding: 20px;
-    padding-bottom: 100;
-}
-
-#medarbetare {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 30px;
-    padding: 80px;
-}
-
-.person {
-    display: flex;
-    align-items: center;
-    width: 45%; 
-    min-width: 250px;
-}
-
-.portrait {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%; 
-    object-fit: cover;
-    margin-right: 15px;
-}
-
-.info h3 {
-    margin: 0;
-    font-weight: 700;
-    font-size: 1.2em;
-    color: #000000;
-}
-.info p {
-    margin: 0;
-    font-size: 0.9em;
-}
-
-/* ======================================================================
-   KARTA
-   ====================================================================== */
-#karta-container {
-    padding: 0px;
-    padding-top: 20px;
-}
-#karta {
-    width: 100%; 
-    height: auto;
-    display: block;
-}
-
-/* ======================================================================
-   PARALLAX LAGER (Rörliga färgblock)
-   ====================================================================== */
-
-#color-layer-1, #color-layer-2 {
-    position: fixed; 
-    width: 100vw;
-    height: 400px; 
-    top: 50%; 
-    left: 0;
-    transform: translateY(-50%); 
-    
-    pointer-events: none; 
-    z-index: -10; /* Ligger LÄNGST BAK */
-}
-
-/* Lager 1: Segt, halvt transparent rött */
-#color-layer-1 {
-    background-color: #ff5733; 
-    opacity: 0.4; 
-    margin-top: -150px; 
-}
-
-/* Lager 2: Snabbt, halvt transparent blått */
-#color-layer-2 {
-    background-color: #33aaff; 
-    opacity: 0.3; 
-    margin-top: 150px; 
+#main-footer p {
+    font-size: 0.8em; 
+    color: #666; 
+    margin: 0; 
 }
