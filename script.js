@@ -1,6 +1,6 @@
-// --- IMPORT AV MODULER ---
-import * as THREE from 'https://unpkg.com/three@0.128.0/build/three.module.js'; // NY STABIL LÄNK
-import { GLTFLoader } from 'https://unpkg.com/three@0.128.0/examples/jsm/loaders/GLTFLoader.js'; // NY STABIL LÄNK
+// --- IMPORT AV MODULER (Den mest stabila länken för GitHub Pages) ---
+import * as THREE from 'https://unpkg.com/three@0.128.0/build/three.module.js';
+import { GLTFLoader } from 'https://unpkg.com/three@0.128.0/examples/jsm/loaders/GLTFLoader.js';
 
 
 // --- KONSTANTER OCH GLOBALA VARIABLER ---
@@ -40,6 +40,17 @@ function init() {
     // Skapar EN global scen
     scene = new THREE.Scene();
     
+    // NY FIX: Anropas först när hela sidan laddats (löser Division-by-Zero)
+    window.onload = function() {
+        startRenderingPipeline();
+    };
+    
+    setupEventListeners();
+    animate();
+}
+
+// NY FUNKTION: Logik som körs EFTER att HTML-elementen har laddats
+function startRenderingPipeline() {
     // Ladda BÅDA modellerna i sina respektive hållare
     // load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotationX)
     
@@ -49,8 +60,8 @@ function init() {
     // Modell 2: Ljusblå (Zoom 60, Vinklad uppifrån)
     load3DModel(MODEL_FILE_2, 'canvas-holder-2', 60, 0x0061ff, 0.9, 10000, -Math.PI / 3); 
     
-    setupEventListeners();
-    animate();
+    // Nödvändigt anrop för att få rätt storlek direkt
+    onWindowResize(); 
 }
 
 // --- GENERISK MODELLADDNINGSFUNKTION ---
@@ -58,7 +69,7 @@ function load3DModel(file, holderId, camZ, colorHex, opacity, positionZ, rotatio
     const holder = document.getElementById(holderId);
     if (!holder) return;
 
-    // Säkert, fast bildförhållande (1.0) för att undvika noll-division
+    // FIX: Använder en säker, fast bildförhållande (1.0) vid initiering
     const localCamera = new THREE.PerspectiveCamera( 75, 1.0, 0.01, 20000 ); 
     localCamera.position.z = camZ + positionZ; 
     cameras.push(localCamera); 
